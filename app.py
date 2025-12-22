@@ -21,7 +21,10 @@ def update_conversation(number):
     if number in active_conversations:
         active_conversations[number]["last_time"] = time.time()
     else:
-        active_conversations[number] = {"last_time": time.time(), "saludo_enviado": False}
+        active_conversations[number] = {
+            "last_time": time.time(),
+            "saludo_enviado": False,
+        }
 
 
 # Función para revisar conversaciones inactivas y notificar al agente
@@ -100,10 +103,7 @@ def received_message():
         return "EVENT_RECEIVED", 500
 
 
-# Función que procesa los mensajes según opciones
 def process_message(text, number):
-    text = text.lower().strip()  # Normalizamos el texto
-
     # ---- SALUDO INICIAL ----
     if not active_conversations[number]["saludo_enviado"]:
         whatsappservice.SendMessageWhatsapp(
@@ -118,6 +118,13 @@ def process_message(text, number):
         )
         active_conversations[number]["saludo_enviado"] = True
         return
+
+    # Si no hay texto, no hacemos nada
+    if not text or text.strip() == "":
+        print(f"Mensaje vacío de {number}, no se envía respuesta.")
+        return
+
+    text = text.lower().strip()  # Normalizamos el texto
 
     responses = []
 
@@ -144,7 +151,8 @@ def process_message(text, number):
             )
         )
         notify_agent(number, "Solicitud de agente")
-    else:
+    elif text not in ["1", "2", "3"]:
+        # Solo enviamos mensaje de error si escribió algo que NO es 1,2,3
         responses.append(
             util.TextMessage(
                 "Lo siento, no hay esa opción. Por favor selecciona una opción del menú:\n"
@@ -162,3 +170,4 @@ def process_message(text, number):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
