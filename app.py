@@ -12,13 +12,16 @@ ACCESS_TOKEN = "788BADHHKAIS77"
 AGENT_NUMBER = "1234567890"  # Número del agente que recibirá notificaciones
 INACTIVITY_TIMEOUT = 600  # 10 minutos
 
-# Diccionario para conversaciones activas {number: last_message_timestamp}
+# Diccionario para conversaciones activas {number: {"last_time": timestamp, "saludo_enviado": bool}}
 active_conversations = {}
 
 
 # Función para actualizar timestamp de la conversación
 def update_conversation(number):
-    active_conversations[number] = time.time()
+    if number in active_conversations:
+        active_conversations[number]["last_time"] = time.time()
+    else:
+        active_conversations[number] = {"last_time": time.time(), "saludo_enviado": False}
 
 
 # Función para revisar conversaciones inactivas y notificar al agente
@@ -26,8 +29,8 @@ def check_inactive_conversations():
     while True:
         now = time.time()
         inactive = []
-        for number, last_time in active_conversations.items():
-            if now - last_time > INACTIVITY_TIMEOUT:
+        for number, data in list(active_conversations.items()):
+            if now - data["last_time"] > INACTIVITY_TIMEOUT:
                 inactive.append(number)
         for number in inactive:
             print(f"Conversación con {number} terminada por inactividad")
@@ -97,15 +100,12 @@ def received_message():
         return "EVENT_RECEIVED", 500
 
 
+# Función que procesa los mensajes según opciones
 def process_message(text, number):
     text = text.lower().strip()  # Normalizamos el texto
 
-    opciones_validas = ["1", "2", "3"]
-
     # ---- SALUDO INICIAL ----
-    if number not in active_conversations or not active_conversations[number].get(
-        "saludo_enviado"
-    ):
+    if not active_conversations[number]["saludo_enviado"]:
         whatsappservice.SendMessageWhatsapp(
             util.TextMessage(
                 "¡Hola! 👋 Soy whatsappbot, tu asistente inteligente.\n\n"
@@ -116,14 +116,8 @@ def process_message(text, number):
                 number,
             )
         )
-        active_conversations[number] = {
-            "last_time": time.time(),
-            "saludo_enviado": True,
-        }
+        active_conversations[number]["saludo_enviado"] = True
         return
-    else:
-        # Actualiza solo el timestamp
-        active_conversations[number]["last_time"] = time.time()
 
     responses = []
 
