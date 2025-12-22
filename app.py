@@ -91,14 +91,13 @@ def ProcessMessage(text, number):
 
     # SALUDO y MENÚ para cualquier mensaje recibido
     whatsappservice.SendMessageWhatsapp(util.TextMessage(
-        "¡Hola! 👋 Soy [Nombre del Bot], tu asistente inteligente. Por favor, elige una opción:",
-        number
+    "¡Hola! 👋 Soy [Nombre del Bot], tu asistente inteligente.\n\n"
+    "Por favor, elige una opción:\n"
+    "1️⃣ Conocer el producto\n"
+    "2️⃣ Consejos o dudas frecuentes\n"
+    "3️⃣ Hablar con un agente",
+    number
     ))
-    whatsappservice.SendMessageWhatsapp(util.ListMessage(number, options=[
-        "1️⃣ Conocer el producto",
-        "2️⃣ Consejos o dudas frecuentes",
-        "3️⃣ Hablar con un agente"
-    ]))
 
     # Terminar aquí para que no se ejecuten otras respuestas en este primer mensaje
     return
@@ -178,3 +177,4 @@ def ProcessMessage(text, number):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
+
