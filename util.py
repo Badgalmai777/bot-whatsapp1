@@ -27,61 +27,6 @@ def TextMessage(text, number):
     }
 
 
-def TextFormatMessage(number):
-    return {
-        "messaging_product": "whatsapp",
-        "to": number,
-        "type": "text",
-        "text": {
-            "body": "*text-message-content* - _hola usuario_ - ~hola~ - ``` hola ```"
-        },
-    }
-
-
-def ImageMessage(number):
-    return {
-        "messaging_product": "whatsapp",
-        "to": number,
-        "type": "image",
-        "image": {
-            "link": "https://biostoragecloud.blob.core.windows.net/resource-udemy-whatsapp-node/image_whatsapp.png"
-        },
-    }
-
-
-def AudioMessage(number):
-    return {
-        "messaging_product": "whatsapp",
-        "to": number,
-        "type": "audio",
-        "audio": {
-            "link": "https://biostoragecloud.blob.core.windows.net/resource-udemy-whatsapp-node/audio_whatsapp.mp3"
-        },
-    }
-
-
-def VideoMessage(number):
-    return {
-        "messaging_product": "whatsapp",
-        "to": number,
-        "type": "video",
-        "video": {
-            "link": "https://biostoragecloud.blob.core.windows.net/resource-udemy-whatsapp-node/video_whatsapp.mp4"
-        },
-    }
-
-
-def DocumentMessage(number):
-    return {
-        "messaging_product": "whatsapp",
-        "to": number,
-        "type": "document",
-        "document": {
-            "link": "https://biostoragecloud.blob.core.windows.net/resource-udemy-whatsapp-node/document_whatsapp.pdf"
-        },
-    }
-
-
 def LocationMessage(number):
     return {
         "messaging_product": "whatsapp",
@@ -96,25 +41,41 @@ def LocationMessage(number):
     }
 
 
-def ButtonsMessage(number):
+# Botones de confirmación simple (opcional)
+def ButtonsMessage(number, text="¿Confirmas tu registro?", buttons=None):
+    if buttons is None:
+        buttons = [
+            {"type": "reply", "reply": {"id": "001", "title": "Sí"}},
+            {"type": "reply", "reply": {"id": "002", "title": "No"}},
+        ]
+
     return {
         "messaging_product": "whatsapp",
         "to": number,
         "type": "interactive",
         "interactive": {
             "type": "button",
-            "body": {"text": "¿Confirmas tu registro?"},
-            "action": {
-                "buttons": [
-                    {"type": "reply", "reply": {"id": "001", "title": "Sí"}},
-                    {"type": "reply", "reply": {"id": "002", "title": "No"}},
-                ]
-            },
+            "body": {"text": text},
+            "action": {"buttons": buttons},
         },
     }
 
 
-def ListMessage(number):
+# Menú principal del bot
+def ListMessage(number, options=None):
+    if options is None:
+        options = [
+            "1️⃣ Conocer el producto",
+            "2️⃣ Consejos o dudas frecuentes",
+            "3️⃣ Hablar con un agente",
+        ]
+
+    # Convertimos las opciones en rows para WhatsApp
+    rows = [
+        {"id": str(i + 1), "title": opt, "description": ""}
+        for i, opt in enumerate(options)
+    ]
+
     return {
         "messaging_product": "whatsapp",
         "to": number,
@@ -125,38 +86,8 @@ def ListMessage(number):
             "footer": {"text": "Selecciona una opción"},
             "action": {
                 "button": "Ver opciones",
-                "sections": [
-                    {
-                        "title": "Compra y venta",
-                        "rows": [
-                            {
-                                "id": "buy",
-                                "title": "Comprar",
-                                "description": "Compra el mejor producto",
-                            },
-                            {
-                                "id": "sell",
-                                "title": "Vender",
-                                "description": "Vende tus productos",
-                            },
-                        ],
-                    },
-                    {
-                        "title": "📍 Atención",
-                        "rows": [
-                            {
-                                "id": "agency",
-                                "title": "Agencia",
-                                "description": "Visita nuestra agencia",
-                            },
-                            {
-                                "id": "contact",
-                                "title": "Contacto",
-                                "description": "Un agente te asistirá",
-                            },
-                        ],
-                    },
-                ],
+                "sections": [{"title": "Menú principal", "rows": rows}],
             },
         },
     }
+
