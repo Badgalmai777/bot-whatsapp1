@@ -97,14 +97,15 @@ def received_message():
         return "EVENT_RECEIVED", 500
 
 
-# Procesa mensajes según el guion (solo opciones 1,2,3)
 def process_message(text, number):
     text = text.lower().strip()  # Normalizamos el texto
 
     opciones_validas = ["1", "2", "3"]
 
-    # ---- SALUDO INICIAL por usuario ----
-    if number not in active_conversations or not hasattr(active_conversations[number], "saludo_enviado"):
+    # ---- SALUDO INICIAL ----
+    if number not in active_conversations or not active_conversations[number].get(
+        "saludo_enviado"
+    ):
         whatsappservice.SendMessageWhatsapp(
             util.TextMessage(
                 "¡Hola! 👋 Soy whatsappbot, tu asistente inteligente.\n\n"
@@ -112,11 +113,17 @@ def process_message(text, number):
                 "1️⃣ Conocer el producto\n"
                 "2️⃣ Consejos o dudas frecuentes\n"
                 "3️⃣ Hablar con un agente",
-                number
+                number,
             )
         )
-        active_conversations[number] = {"last_time": time.time(), "saludo_enviado": True}
+        active_conversations[number] = {
+            "last_time": time.time(),
+            "saludo_enviado": True,
+        }
         return
+    else:
+        # Actualiza solo el timestamp
+        active_conversations[number]["last_time"] = time.time()
 
     responses = []
 
