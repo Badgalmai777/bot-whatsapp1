@@ -4,6 +4,7 @@ import util
 import whatsappservice
 import time
 import threading
+import traceback
 
 app = Flask(__name__)
 
@@ -53,7 +54,7 @@ def index():
 
 # Verificación del token de WhatsApp
 @app.route("/whatsapp", methods=["GET"])
-def VerifyToken():
+def verify_token():
     token = request.args.get("hub.verify_token")
     challenge = request.args.get("hub.challenge")
     if token and challenge and token == ACCESS_TOKEN:
@@ -63,36 +64,47 @@ def VerifyToken():
 
 # Recepción de mensajes
 @app.route("/whatsapp", methods=["POST"])
-def ReceivedMessage():
+def received_message():
     try:
         body = request.get_json()
-        entry = body["entry"][0]
-        changes = entry["changes"][0]
-        value = changes["value"]
-        message = value["messages"][0]
-        number = message["from"]
+        entry = body.get("entry", [])
+        if not entry:
+            return "No entry", 400
+        changes = entry[0].get("changes", [])
+        if not changes:
+            return "No changes", 400
+        value = changes[0].get("value", {})
+        messages = value.get("messages", [])
+        if not messages:
+            return "No messages", 200  # No es error, puede ser evento de estado
+
+        message = messages[0]
+        number = message.get("from")
         text = util.GetTextUser(message)
+
+        if not number or not text:
+            return "Invalid message", 400
 
         # Actualiza la conversación activa
         update_conversation(number)
-        ProcessMessage(text, number)
+        process_message(text, number)
 
         print(f"Mensaje recibido: {text} de {number}")
         return "EVENT_RECEIVED", 200
-    except Exception as e:
-        print(e)
-        return "EVENT_RECEIVED", 200
+    except Exception:
+        print("Error procesando mensaje:")
+        traceback.print_exc()
+        return "EVENT_RECEIVED", 500
 
 
 # Procesa mensajes según el guion (solo opciones 1,2,3)
-def ProcessMessage(text, number):
+def process_message(text, number):
     text = text.lower().strip()  # Normalizamos el texto
-    responses = []
 
     opciones_validas = ["1", "2", "3"]
 
-    # ---- SALUDO INICIAL: cualquier mensaje se considera inicio ----
-    if not hasattr(ProcessMessage, "saludo_enviado"):
+    # ---- SALUDO INICIAL por usuario ----
+    if number not in active_conversations or not hasattr(active_conversations[number], "saludo_enviado"):
         whatsappservice.SendMessageWhatsapp(
             util.TextMessage(
                 "¡Hola! 👋 Soy whatsappbot, tu asistente inteligente.\n\n"
@@ -103,8 +115,10 @@ def ProcessMessage(text, number):
                 number
             )
         )
-        ProcessMessage.saludo_enviado = True
+        active_conversations[number] = {"last_time": time.time(), "saludo_enviado": True}
         return
+
+    responses = []
 
     # ---- RESPONDER SEGÚN OPCIÓN ----
     if text == "1":
@@ -129,25 +143,21 @@ def ProcessMessage(text, number):
             )
         )
         notify_agent(number, "Solicitud de agente")
-
-    # MENSAJE POR DEFECTO si envían algo inválido
     else:
         responses.append(
             util.TextMessage(
-                "Lo siento, no hay esa opción. Por favor selecciona una opción del menú:",
-                number,
-            )
-        )
-        # Re-desplegar el menú
-        whatsappservice.SendMessageWhatsapp(
-            util.TextMessage(
+                "Lo siento, no hay esa opción. Por favor selecciona una opción del menú:\n"
                 "1️⃣ Conocer el producto\n"
                 "2️⃣ Consejos o dudas frecuentes\n"
                 "3️⃣ Hablar con un agente",
-                number
+                number,
             )
         )
 
     # Enviar todas las respuestas
     for msg in responses:
         whatsappservice.SendMessageWhatsapp(msg)
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
