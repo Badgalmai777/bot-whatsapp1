@@ -89,25 +89,20 @@ def ProcessMessage(text, number):
     text = text.lower()
     responses = []
 
-    # Saludo inicial
-    if text in ["hi", "hello", "hola"]:
-        responses.append(
-            util.TextMessage(
-                "¡Hola! 👋 Soy [Nombre del Bot], tu asistente inteligente. ¿Cómo puedo ayudarte hoy?",
-                number,
-            )
-        )
-        responses.append(
-            util.ListMessage(
-                number,
-                options=[
-                    "1️⃣ Conocer el producto",
-                    "2️⃣ Consejos o dudas frecuentes",
-                    "3️⃣ Hablar con un agente",
-                ],
-            )
-        )
-
+# Saludo inicial y menú juntos
+if text in ["hi", "hello", "hola"]:
+    # Mensaje de saludo
+    whatsappservice.SendMessageWhatsapp(util.TextMessage(
+        "¡Hola! 👋 Soy [Nombre del Bot], tu asistente inteligente.", number
+    ))
+    
+    # Mostrar inmediatamente el menú de opciones
+    whatsappservice.SendMessageWhatsapp(util.ListMessage(number, options=[
+        "1️⃣ Conocer el producto",
+        "2️⃣ Consejos o dudas frecuentes",
+        "3️⃣ Hablar con un agente"
+    ]))
+    
     # Opción 1: Conocer el producto
     elif text.startswith("1") or "conocer el producto" in text:
         responses.append(
@@ -182,3 +177,4 @@ def ProcessMessage(text, number):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
+
