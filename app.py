@@ -13,17 +13,17 @@ def index():
 
 @app.route("/whatsapp", methods=["GET"])
 def VerifyToken():
+
     try:
-        accessToken = os.environ.get("VERIFY_TOKEN")  # desde Railway
+        accessToken = "788BADHHKAIS77"
         token = request.args.get("hub.verify_token")
         challenge = request.args.get("hub.challenge")
 
-        if token is not None and challenge is not None and token == accessToken:
-            return challenge, 200
+        if token != None and challenge != None and token == accessToken:
+            return challenge
         else:
             return "", 400
-    except Exception as e:
-        print(e)
+    except:
         return "", 400
 
 
