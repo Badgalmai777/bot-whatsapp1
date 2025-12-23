@@ -82,7 +82,6 @@ def received_message():
             .get("messages", [])
         )
 
-        # 🔴 Evento SIN mensaje del usuario
         if not messages:
             return "EVENT_RECEIVED", 200
 
@@ -90,11 +89,9 @@ def received_message():
         number = message.get("from")
         text = util.GetTextUser(message)
 
-        # 🔴 Mensaje vacío o inválido
-        if not number or not text or not text.strip():
+        if not number or not text:
             return "EVENT_RECEIVED", 200
 
-        text = text.strip()
         update_conversation(number)
         process_message(text, number)
 
@@ -112,7 +109,7 @@ def process_message(text, number):
     convo = active_conversations[number]
     text = text.lower().strip()
 
-    # ---- SALUDO INICIAL ----
+    # ---- SALUDO INICIAL (SIEMPRE AL PRIMER MENSAJE) ----
     if not convo["saludo_enviado"]:
         whatsappservice.SendMessageWhatsapp(
             util.TextMessage(
@@ -125,7 +122,8 @@ def process_message(text, number):
             )
         )
         convo["saludo_enviado"] = True
-        return
+        convo["estado"] = "menu_principal"
+        return  # ⛔ IMPORTANTE: no procesar el texto recibido
 
     # ---- DESPEDIDA ----
     if text in ["ok", "okey", "gracias", "muchas gracias"]:
@@ -201,11 +199,10 @@ def process_message(text, number):
             )
             return
 
-        elif text == "2" or "precio" in text or "cotiz" in text:
+        elif text == "2" or ("precio" in text) or ("cotiz" in text):
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
                     "🧾 Cotización personalizada\n\n"
-                    "El precio depende de lo que necesites.\n"
                     "Cuéntanos brevemente:\n"
                     "• Qué necesitas\n"
                     "• Para cuándo lo necesitas\n\n"
@@ -247,4 +244,3 @@ def process_message(text, number):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
