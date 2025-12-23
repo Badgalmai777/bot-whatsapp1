@@ -16,6 +16,8 @@ INACTIVITY_TIMEOUT = 600  # 10 minutos
 active_conversations = {}
 
 
+# ================= UTILIDADES =================
+
 def update_conversation(number):
     if number not in active_conversations:
         active_conversations[number] = {
@@ -27,13 +29,18 @@ def update_conversation(number):
         active_conversations[number]["last_time"] = time.time()
 
 
+def close_conversation(number):
+    if number in active_conversations:
+        del active_conversations[number]
+
+
 def check_inactive_conversations():
     while True:
         now = time.time()
         for number in list(active_conversations.keys()):
             if now - active_conversations[number]["last_time"] > INACTIVITY_TIMEOUT:
                 print(f"Conversación con {number} cerrada por inactividad")
-                del active_conversations[number]
+                close_conversation(number)
         time.sleep(60)
 
 
@@ -41,9 +48,13 @@ threading.Thread(target=check_inactive_conversations, daemon=True).start()
 
 
 def notify_agent(number, reason):
-    msg = f"Cliente {number} requiere atención: {reason}"
-    whatsappservice.SendMessageWhatsapp(util.TextMessage(msg, AGENT_NUMBER))
+    msg = f"📞 Cliente {number} requiere atención: {reason}"
+    whatsappservice.SendMessageWhatsapp(
+        util.TextMessage(msg, AGENT_NUMBER)
+    )
 
+
+# ================= RUTAS =================
 
 @app.route("/welcome", methods=["GET"])
 def index():
@@ -55,7 +66,7 @@ def verify_token():
     token = request.args.get("hub.verify_token")
     challenge = request.args.get("hub.challenge")
     if token == ACCESS_TOKEN:
-        return challenge
+        return challenge, 200
     return "", 400
 
 
@@ -71,7 +82,7 @@ def received_message():
             .get("messages", [])
         )
 
-        # ⚠️ Evento sin mensaje del usuario → NO RESPONDER
+        # 🔴 Evento SIN mensaje del usuario
         if not messages:
             return "EVENT_RECEIVED", 200
 
@@ -79,12 +90,13 @@ def received_message():
         number = message.get("from")
         text = util.GetTextUser(message)
 
-        # ⚠️ Texto vacío → NO RESPONDER
+        # 🔴 Mensaje vacío o inválido
         if not number or not text or not text.strip():
             return "EVENT_RECEIVED", 200
 
+        text = text.strip()
         update_conversation(number)
-        process_message(text.strip(), number)
+        process_message(text, number)
 
         print(f"Mensaje recibido de {number}: {text}")
         return "EVENT_RECEIVED", 200
@@ -92,12 +104,15 @@ def received_message():
     except Exception:
         traceback.print_exc()
         return "EVENT_RECEIVED", 500
-    
+
+
+# ================= LÓGICA DEL BOT =================
+
 def process_message(text, number):
     convo = active_conversations[number]
     text = text.lower().strip()
 
-    # ---- SALUDO ----
+    # ---- SALUDO INICIAL ----
     if not convo["saludo_enviado"]:
         whatsappservice.SendMessageWhatsapp(
             util.TextMessage(
@@ -120,7 +135,7 @@ def process_message(text, number):
                 number,
             )
         )
-        del active_conversations[number]
+        close_conversation(number)
         return
 
     # ================= MENÚ PRINCIPAL =================
@@ -135,7 +150,7 @@ def process_message(text, number):
             )
             return
 
-        if text == "2":
+        elif text == "2":
             convo["estado"] = "faq"
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
@@ -148,7 +163,7 @@ def process_message(text, number):
             )
             return
 
-        if text == "3":
+        elif text == "3":
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
                     "Conectándote con un agente… 🕒",
@@ -156,53 +171,13 @@ def process_message(text, number):
                 )
             )
             notify_agent(number, "Hablar con agente")
+            close_conversation(number)
             return
 
-        # Opción inválida
-        whatsappservice.SendMessageWhatsapp(
-            util.TextMessage(
-                "Selecciona una opción válida:\n"
-                "1️⃣ Conocer el producto\n"
-                "2️⃣ Preguntas frecuentes\n"
-                "3️⃣ Hablar con un agente",
-                number,
-            )
-        )
-        return
-
-    # ================= FAQ =================
-    if convo["estado"] == "faq":
-
-        if text == "1":
+        else:
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
-                    "ℹ️ Información general\n\n"
-                    "El servicio se adapta a tus necesidades.\n"
-                    "1️⃣ Nos cuentas qué necesitas\n"
-                    "2️⃣ Evaluamos tu caso\n"
-                    "3️⃣ Te damos una propuesta personalizada\n\n"
-                    "Si deseas una cotización, elige la opción 2️⃣ 😊",
-                    number,
-                )
-            )
-            return
-
-        if text == "2" or "precio" in text or "cotiz" in text:
-            whatsappservice.SendMessageWhatsapp(
-                util.TextMessage(
-                    "🧾 Cotización personalizada\n\n"
-                    "Cuéntanos qué necesitas y para cuándo 😊",
-                    number,
-                )
-            )
-            notify_agent(number, "Cotización")
-            return
-
-        if text == "3":
-            convo["estado"] = "menu_principal"
-            whatsappservice.SendMessageWhatsapp(
-                util.TextMessage(
-                    "Perfecto 👍 Volvemos al menú principal:\n\n"
+                    "❗ Opción no válida.\n\n"
                     "1️⃣ Conocer el producto\n"
                     "2️⃣ Preguntas frecuentes\n"
                     "3️⃣ Hablar con un agente",
@@ -211,26 +186,59 @@ def process_message(text, number):
             )
             return
 
-        # Opción inválida en FAQ
-        whatsappservice.SendMessageWhatsapp(
-            util.TextMessage(
-                "Elige una opción válida:\n"
-                "1️⃣ Información general\n"
-                "2️⃣ Cotización personalizada\n"
-                "3️⃣ Volver al menú",
-                number,
+    # ================= FAQ =================
+    if convo["estado"] == "faq":
+
+        if text == "1":
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "ℹ️ Información general\n\n"
+                    "Nuestro servicio se adapta a tus necesidades.\n"
+                    "Si deseas una cotización, elige la opción 2️⃣ 😊",
+                    number,
+                )
             )
-        )
-        return
+            return
+
+        elif text == "2" or "precio" in text or "cotiz" in text:
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "🧾 Cotización personalizada\n\n"
+                    "Cuéntanos qué necesitas y para cuándo 😊",
+                    number,
+                )
+            )
+            notify_agent(number, "Cotización")
+            close_conversation(number)
+            return
+
+        elif text == "3":
+            convo["estado"] = "menu_principal"
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "🔙 Menú principal:\n\n"
+                    "1️⃣ Conocer el producto\n"
+                    "2️⃣ Preguntas frecuentes\n"
+                    "3️⃣ Hablar con un agente",
+                    number,
+                )
+            )
+            return
+
+        else:
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "❗ Opción no válida.\n\n"
+                    "1️⃣ Información general\n"
+                    "2️⃣ Cotización personalizada\n"
+                    "3️⃣ Volver al menú",
+                    number,
+                )
+            )
+            return
 
 
-
-
-    for msg in responses:
-    whatsappservice.SendMessageWhatsapp(msg)
-
-
-
+# ================= MAIN =================
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
