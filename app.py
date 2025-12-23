@@ -108,11 +108,10 @@ def received_message():
 def process_message(text, number):
     convo = active_conversations[number]
 
-    # Normalizamos texto SOLO si existe
+    # Normalizamos texto
     text = (text or "").lower().strip()
 
     # ---- SALUDO INICIAL (SIEMPRE AL PRIMER MENSAJE) ----
-    # No importa qué escribió el cliente
     if not convo["saludo_enviado"]:
         whatsappservice.SendMessageWhatsapp(
             util.TextMessage(
@@ -126,7 +125,11 @@ def process_message(text, number):
         )
         convo["saludo_enviado"] = True
         convo["estado"] = "menu_principal"
-        return  # ⛔ NO procesar el mensaje inicial
+        return  # ⛔ no procesar este mensaje
+
+    # ---- ESPERANDO AGENTE (SILENCIO TOTAL) ----
+    if convo["estado"] == "esperando_agente":
+        return
 
     # ---- DESPEDIDA ----
     if text in ["ok", "okey", "gracias", "muchas gracias"]:
@@ -155,27 +158,23 @@ def process_message(text, number):
         elif text == "2" or ("precio" in text) or ("cotiz" in text):
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
-                    "🧾 Cotización personalizada\n\n"
-                    "Cuéntanos brevemente:\n"
-                    "• Qué necesitas\n"
-                    "• Para cuándo lo necesitas\n\n"
-                    "Un agente te responderá pronto 😊",
+                    "🧾 Gracias, un agente continuará la conversación contigo en breve 😊",
                     number,
                 )
             )
             notify_agent(number, "Cotización")
-            close_conversation(number)
+            convo["estado"] = "esperando_agente"
             return
 
         elif text == "3":
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
-                    "Conectándote con un agente… 🕒",
+                    "📞 Te conectamos con un agente, un momento por favor…",
                     number,
                 )
             )
             notify_agent(number, "Hablar con agente")
-            close_conversation(number)
+            convo["estado"] = "esperando_agente"
             return
 
         else:
@@ -196,4 +195,5 @@ def process_message(text, number):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
 
