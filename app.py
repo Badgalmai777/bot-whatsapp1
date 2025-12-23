@@ -63,6 +63,7 @@ def verify_token():
 def received_message():
     try:
         body = request.get_json()
+
         messages = (
             body.get("entry", [{}])[0]
             .get("changes", [{}])[0]
@@ -70,6 +71,7 @@ def received_message():
             .get("messages", [])
         )
 
+        # ⚠️ Evento sin mensaje del usuario → NO RESPONDER
         if not messages:
             return "EVENT_RECEIVED", 200
 
@@ -77,11 +79,12 @@ def received_message():
         number = message.get("from")
         text = util.GetTextUser(message)
 
-        if not number or not text:
+        # ⚠️ Texto vacío → NO RESPONDER
+        if not number or not text or not text.strip():
             return "EVENT_RECEIVED", 200
 
         update_conversation(number)
-        process_message(text, number)
+        process_message(text.strip(), number)
 
         print(f"Mensaje recibido de {number}: {text}")
         return "EVENT_RECEIVED", 200
@@ -95,7 +98,7 @@ def process_message(text, number):
     convo = active_conversations[number]
     text = text.lower().strip()
 
-    # ---- SALUDO ----
+    # ---- SALUDO (SOLO SI EL USUARIO ESCRIBIÓ ALGO) ----
     if not convo["saludo_enviado"]:
         whatsappservice.SendMessageWhatsapp(
             util.TextMessage(
