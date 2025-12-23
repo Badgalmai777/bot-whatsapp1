@@ -27,7 +27,6 @@ def update_conversation(number):
         }
 
 
-# Función para revisar conversaciones inactivas y notificar al agente
 def check_inactive_conversations():
     while True:
         now = time.time()
@@ -35,11 +34,13 @@ def check_inactive_conversations():
         for number, data in list(active_conversations.items()):
             if now - data["last_time"] > INACTIVITY_TIMEOUT:
                 inactive.append(number)
+
         for number in inactive:
             print(f"Conversación con {number} terminada por inactividad")
-            notify_agent(number, "Cliente no respondió después de 10 minutos")
+            # ❌ NO enviar mensajes
             del active_conversations[number]
-        time.sleep(60)  # Revisa cada minuto
+
+        time.sleep(60)
 
 
 # Inicia el hilo de revisión de inactividad
