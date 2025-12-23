@@ -107,23 +107,26 @@ def received_message():
 
 def process_message(text, number):
     convo = active_conversations[number]
-    text = text.lower().strip()
+
+    # Normalizamos texto SOLO si existe
+    text = (text or "").lower().strip()
 
     # ---- SALUDO INICIAL (SIEMPRE AL PRIMER MENSAJE) ----
+    # No importa qué escribió el cliente
     if not convo["saludo_enviado"]:
         whatsappservice.SendMessageWhatsapp(
             util.TextMessage(
                 "¡Hola! 👋 Soy whatsappbot, tu asistente inteligente.\n\n"
                 "Elige una opción:\n"
                 "1️⃣ Conocer el producto\n"
-                "2️⃣ Preguntas frecuentes\n"
+                "2️⃣ Cotización personalizada\n"
                 "3️⃣ Hablar con un agente",
                 number,
             )
         )
         convo["saludo_enviado"] = True
         convo["estado"] = "menu_principal"
-        return  # ⛔ IMPORTANTE: no procesar el texto recibido
+        return  # ⛔ NO procesar el mensaje inicial
 
     # ---- DESPEDIDA ----
     if text in ["ok", "okey", "gracias", "muchas gracias"]:
@@ -149,17 +152,19 @@ def process_message(text, number):
             )
             return
 
-        elif text == "2":
-            convo["estado"] = "faq"
+        elif text == "2" or ("precio" in text) or ("cotiz" in text):
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
-                    "📋 Preguntas frecuentes\n\n"
-                    "1️⃣ Información general\n"
-                    "2️⃣ Cotización personalizada\n"
-                    "3️⃣ Volver al menú",
+                    "🧾 Cotización personalizada\n\n"
+                    "Cuéntanos brevemente:\n"
+                    "• Qué necesitas\n"
+                    "• Para cuándo lo necesitas\n\n"
+                    "Un agente te responderá pronto 😊",
                     number,
                 )
             )
+            notify_agent(number, "Cotización")
+            close_conversation(number)
             return
 
         elif text == "3":
@@ -178,69 +183,17 @@ def process_message(text, number):
                 util.TextMessage(
                     "❗ Opción no válida.\n\n"
                     "1️⃣ Conocer el producto\n"
-                    "2️⃣ Preguntas frecuentes\n"
-                    "3️⃣ Hablar con un agente",
-                    number,
-                )
-            )
-            return
-
-    # ================= FAQ =================
-    if convo["estado"] == "faq":
-
-        if text == "1":
-            whatsappservice.SendMessageWhatsapp(
-                util.TextMessage(
-                    "ℹ️ Información general\n\n"
-                    "Nuestro servicio se adapta a tus necesidades.\n"
-                    "Si deseas una cotización, elige la opción 2️⃣ 😊",
-                    number,
-                )
-            )
-            return
-
-        elif text == "2" or ("precio" in text) or ("cotiz" in text):
-            whatsappservice.SendMessageWhatsapp(
-                util.TextMessage(
-                    "🧾 Cotización personalizada\n\n"
-                    "Cuéntanos brevemente:\n"
-                    "• Qué necesitas\n"
-                    "• Para cuándo lo necesitas\n\n"
-                    "Un agente te responderá pronto 😊",
-                    number,
-                )
-            )
-            notify_agent(number, "Cotización")
-            close_conversation(number)
-            return
-
-        elif text == "3":
-            convo["estado"] = "menu_principal"
-            whatsappservice.SendMessageWhatsapp(
-                util.TextMessage(
-                    "🔙 Menú principal:\n\n"
-                    "1️⃣ Conocer el producto\n"
-                    "2️⃣ Preguntas frecuentes\n"
-                    "3️⃣ Hablar con un agente",
-                    number,
-                )
-            )
-            return
-
-        else:
-            whatsappservice.SendMessageWhatsapp(
-                util.TextMessage(
-                    "❗ Opción no válida.\n\n"
-                    "1️⃣ Información general\n"
                     "2️⃣ Cotización personalizada\n"
-                    "3️⃣ Volver al menú",
+                    "3️⃣ Hablar con un agente",
                     number,
                 )
             )
             return
+
 
 
 # ================= MAIN =================
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
