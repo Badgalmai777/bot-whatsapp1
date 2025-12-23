@@ -105,6 +105,13 @@ def received_message():
 
 
 def process_message(text, number):
+    # Inicializar conversación si no existe
+    if number not in active_conversations:
+        active_conversations[number] = {
+            "saludo_enviado": False,
+            "estado": "menu_principal",  # menu_principal | faq
+        }
+
     # ---- SALUDO INICIAL ----
     if not active_conversations[number]["saludo_enviado"]:
         whatsappservice.SendMessageWhatsapp(
@@ -112,7 +119,7 @@ def process_message(text, number):
                 "¡Hola! 👋 Soy whatsappbot, tu asistente inteligente.\n\n"
                 "Por favor, elige una opción:\n"
                 "1️⃣ Conocer el producto\n"
-                "2️⃣ Consejos o dudas frecuentes\n"
+                "2️⃣ Preguntas frecuentes\n"
                 "3️⃣ Hablar con un agente",
                 number,
             )
@@ -120,55 +127,127 @@ def process_message(text, number):
         active_conversations[number]["saludo_enviado"] = True
         return
 
-    # Si no hay texto, no hacemos nada
+    # Si no hay texto
     if not text or text.strip() == "":
-        print(f"Mensaje vacío de {number}, no se envía respuesta.")
         return
 
-    text = text.lower().strip()  # Normalizamos el texto
+    text = text.lower().strip()
+    estado = active_conversations[number]["estado"]
 
-    responses = []
+    # ---- DESPEDIDA ----
+    if text in ["ok", "okey", "gracias", "gracias!", "muchas gracias"]:
+        whatsappservice.SendMessageWhatsapp(
+            util.TextMessage(
+                "¡Con gusto! 😊 Ha sido un placer ayudarte.\n"
+                "¡Que tengas un excelente día! 👋",
+                number,
+            )
+        )
+        active_conversations.pop(number, None)
+        return
 
-    # ---- RESPONDER SEGÚN OPCIÓN ----
-    if text == "1":
-        responses.append(
-            util.TextMessage(
-                "[Nombre del Bot] automatiza tus mensajes, organiza pedidos y te muestra estadísticas en tiempo real. Todo en un solo lugar. 😎",
-                number,
-            )
-        )
-    elif text == "2":
-        responses.append(
-            util.TextMessage(
-                "Puedes preguntarme cualquier cosa relacionada con nuestros productos o servicios. 😊",
-                number,
-            )
-        )
-    elif text == "3":
-        responses.append(
-            util.TextMessage(
-                "Conectándote con un agente humano… ¡un momento por favor! 🕒",
-                number,
-            )
-        )
-        notify_agent(number, "Solicitud de agente")
-    elif text not in ["1", "2", "3"]:
-        # Solo enviamos mensaje de error si escribió algo que NO es 1,2,3
-        responses.append(
-            util.TextMessage(
-                "Lo siento, no hay esa opción. Por favor selecciona una opción del menú:\n"
-                "1️⃣ Conocer el producto\n"
-                "2️⃣ Consejos o dudas frecuentes\n"
-                "3️⃣ Hablar con un agente",
-                number,
-            )
-        )
+    # ================= MENÚ PRINCIPAL =================
+    if estado == "menu_principal":
 
-    # Enviar todas las respuestas
+        if text == "1":
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "🤖 Ofrecemos un servicio adaptado a las necesidades de cada cliente.\n"
+                    "Automatizamos procesos y brindamos atención eficiente 😊",
+                    number,
+                )
+            )
+
+        elif text == "2":
+            active_conversations[number]["estado"] = "faq"
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "📋 Preguntas frecuentes\n\n"
+                    "1️⃣ Información general\n"
+                    "2️⃣ Cotización personalizada\n"
+                    "3️⃣ Volver al menú",
+                    number,
+                )
+            )
+
+        elif text == "3":
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "Conectándote con un agente humano… un momento por favor 🕒",
+                    number,
+                )
+            )
+            notify_agent(number, "Solicitud de agente")
+
+        else:
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "Opción no válida 😕\n\n"
+                    "1️⃣ Conocer el producto\n"
+                    "2️⃣ Preguntas frecuentes\n"
+                    "3️⃣ Hablar con un agente",
+                    number,
+                )
+            )
+
+    # ================= FAQ =================
+    elif estado == "faq":
+
+        if text == "1":
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "ℹ️ Información general\n\n"
+                    "Ofrecemos un servicio adaptado a las necesidades de cada cliente.\n"
+                    "El proceso es simple:\n"
+                    "1️⃣ Nos cuentas qué necesitas\n"
+                    "2️⃣ Evaluamos tu caso\n"
+                    "3️⃣ Te damos una propuesta personalizada\n\n"
+                    "Si deseas una cotización, elige la opción 2️⃣ 😊",
+                    number,
+                )
+            )
+
+        elif text == "2" or "precio" in text or "cotiz" in text:
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "🧾 Cotización personalizada\n\n"
+                    "El precio depende de lo que necesites.\n"
+                    "Cuéntanos brevemente:\n"
+                    "• Qué necesitas\n"
+                    "• Para cuándo lo necesitas\n\n"
+                    "Un agente te responderá pronto 😊",
+                    number,
+                )
+            )
+            notify_agent(number, "Solicitud de cotización")
+
+        elif text == "3":
+            active_conversations[number]["estado"] = "menu_principal"
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "Perfecto 👍 Volvemos al menú principal.\n\n"
+                    "1️⃣ Conocer el producto\n"
+                    "2️⃣ Preguntas frecuentes\n"
+                    "3️⃣ Hablar con un agente",
+                    number,
+                )
+            )
+
+        else:
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "Selecciona una opción válida:\n\n"
+                    "1️⃣ Información general\n"
+                    "2️⃣ Cotización personalizada\n"
+                    "3️⃣ Volver al menú",
+                    number,
+                )
+            )
+
+    # Enviar respuestas
     for msg in responses:
         whatsappservice.SendMessageWhatsapp(msg)
 
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
