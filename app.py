@@ -158,7 +158,7 @@ def process_message(text, number):
         elif text == "2" or ("precio" in text) or ("cotiz" in text):
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
-                    "🧾 Gracias, un agente continuará la conversación contigo en breve 😊",
+                    "🧾 Cotización personalizada\n\n" "Cuéntanos brevemente:\n" "• Qué necesitas\n" "• Para cuándo lo necesitas\n\n" "Un agente te responderá pronto 😊",
                     number,
                 )
             )
@@ -195,5 +195,6 @@ def process_message(text, number):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
 
 
