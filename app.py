@@ -107,11 +107,9 @@ def received_message():
 
 def process_message(text, number):
     convo = active_conversations[number]
-
-    # Normalizamos texto
     text = (text or "").lower().strip()
 
-    # ---- SALUDO INICIAL (SIEMPRE AL PRIMER MENSAJE) ----
+    # ---- SALUDO INICIAL ----
     if not convo["saludo_enviado"]:
         whatsappservice.SendMessageWhatsapp(
             util.TextMessage(
@@ -125,10 +123,21 @@ def process_message(text, number):
         )
         convo["saludo_enviado"] = True
         convo["estado"] = "menu_principal"
-        return  # ⛔ no procesar este mensaje
+        return
 
-    # ---- ESPERANDO AGENTE (SILENCIO TOTAL) ----
+    # ---- ESPERANDO AGENTE ----
     if convo["estado"] == "esperando_agente":
+        if text in ["menu", "inicio", "volver"]:
+            convo["estado"] = "menu_principal"
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "🔙 Menú principal:\n\n"
+                    "1️⃣ Conocer el producto\n"
+                    "2️⃣ Cotización personalizada\n"
+                    "3️⃣ Hablar con un agente",
+                    number,
+                )
+            )
         return
 
     # ---- DESPEDIDA ----
@@ -142,7 +151,7 @@ def process_message(text, number):
         close_conversation(number)
         return
 
-    # ================= MENÚ PRINCIPAL =================
+    # ---- MENÚ PRINCIPAL ----
     if convo["estado"] == "menu_principal":
 
         if text == "1":
@@ -190,11 +199,9 @@ def process_message(text, number):
             return
 
 
-
 # ================= MAIN =================
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
 
 
