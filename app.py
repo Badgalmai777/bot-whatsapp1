@@ -144,7 +144,8 @@ def process_message(text, number):
         if text == "1":
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
-                    "🤖 Ofrecemos un servicio adaptado a las necesidades de cada cliente.",
+                    "🤖 Ofrecemos un servicio adaptado a las necesidades de cada cliente.\n"
+                    "Automatizamos procesos y brindamos atención eficiente 😊",
                     number,
                 )
             )
@@ -204,7 +205,11 @@ def process_message(text, number):
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
                     "🧾 Cotización personalizada\n\n"
-                    "Cuéntanos qué necesitas y para cuándo 😊",
+                    "El precio depende de lo que necesites.\n"
+                    "Cuéntanos brevemente:\n"
+                    "• Qué necesitas\n"
+                    "• Para cuándo lo necesitas\n\n"
+                    "Un agente te responderá pronto 😊",
                     number,
                 )
             )
@@ -242,3 +247,4 @@ def process_message(text, number):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
