@@ -103,8 +103,6 @@ def received_message():
         return "EVENT_RECEIVED", 500
 
 
-# ================= LÓGICA DEL BOT =================
-
 def process_message(text, number):
     convo = active_conversations[number]
     text = (text or "").lower().strip()
@@ -123,10 +121,13 @@ def process_message(text, number):
         )
         convo["saludo_enviado"] = True
         convo["estado"] = "menu_principal"
+        convo["confirmacion_enviada"] = False
         return
 
     # ---- ESPERANDO AGENTE ----
     if convo["estado"] == "esperando_agente":
+
+        # 🔁 Volver al menú
         if text in ["menu", "inicio", "volver"]:
             convo["estado"] = "menu_principal"
             whatsappservice.SendMessageWhatsapp(
@@ -138,6 +139,20 @@ def process_message(text, number):
                     number,
                 )
             )
+            return
+
+        # ✅ PRIMER MENSAJE DE COTIZACIÓN → CONFIRMACIÓN
+        if not convo.get("confirmacion_enviada"):
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "Perfecto 😊 te contactaremos a lo largo del día.",
+                    number,
+                )
+            )
+            convo["confirmacion_enviada"] = True
+            return
+
+        # 🔕 Silencio total después
         return
 
     # ---- DESPEDIDA ----
@@ -167,12 +182,17 @@ def process_message(text, number):
         elif text == "2" or ("precio" in text) or ("cotiz" in text):
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
-                    "🧾 Cotización personalizada\n\n" "Cuéntanos brevemente:\n" "• Qué necesitas\n" "• Para cuándo lo necesitas\n\n" "Un agente te responderá pronto 😊",
+                    "🧾 Cotización personalizada\n\n"
+                    "Cuéntanos brevemente:\n"
+                    "• Qué necesitas\n"
+                    "• Para cuándo lo necesitas\n\n"
+                    "Un agente te responderá pronto 😊",
                     number,
                 )
             )
             notify_agent(number, "Cotización")
             convo["estado"] = "esperando_agente"
+            convo["confirmacion_enviada"] = False
             return
 
         elif text == "3":
@@ -184,6 +204,7 @@ def process_message(text, number):
             )
             notify_agent(number, "Hablar con agente")
             convo["estado"] = "esperando_agente"
+            convo["confirmacion_enviada"] = False
             return
 
         else:
@@ -204,6 +225,7 @@ def process_message(text, number):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
 
 
 
