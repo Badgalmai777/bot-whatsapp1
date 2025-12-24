@@ -145,7 +145,8 @@ def process_message(text, number):
         if not convo.get("confirmacion_enviada"):
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
-                    "Perfecto 😊 te contactaremos a lo largo del día.",
+                    "Perfecto 😊 te contactaremos a lo largo del día.\n\n"
+                    "Si deseas volver al menú principal, escribe *menu*.",
                     number,
                 )
             )
@@ -225,7 +226,6 @@ def process_message(text, number):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
 
 
 
