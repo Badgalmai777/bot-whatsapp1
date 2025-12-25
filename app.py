@@ -130,8 +130,15 @@ def process_message(text, number):
     # ---- ESPERANDO AGENTE ----
     if convo["estado"] == "esperando_agente":
 
-        # ⛔ IGNORAR DESPEDIDAS AQUÍ
-        if text in ["ok", "okey", "gracias", "muchas gracias"]:
+        # ✅ DESPEDIDA SOLO SI VIENE DE AGENTE
+        if convo["origen"] == "agente" and text in ["ok", "okey", "gracias", "muchas gracias"]:
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "¡Con gusto! 😊 Un agente te contactará pronto. ¡Que tengas un excelente día! 👋",
+                    number,
+                )
+            )
+            close_conversation(number)
             return
 
         # 🔁 Volver al menú
@@ -148,7 +155,7 @@ def process_message(text, number):
             )
             return
 
-        # ✅ CONFIRMACIÓN SOLO SI VIENE DE COTIZACIÓN
+        # ✅ CONFIRMACIÓN SOLO SI ES COTIZACIÓN
         if convo["origen"] == "cotizacion" and not convo["confirmacion_enviada"]:
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
@@ -160,10 +167,10 @@ def process_message(text, number):
             convo["confirmacion_enviada"] = True
             return
 
-        # 🔕 Silencio total
+        # 🔕 Silencio total después
         return
 
-    # ---- DESPEDIDA (SOLO FUERA DE ESPERANDO_AGENTE) ----
+    # ---- DESPEDIDA GENERAL ----
     if text in ["ok", "okey", "gracias", "muchas gracias"]:
         whatsappservice.SendMessageWhatsapp(
             util.TextMessage(
@@ -231,8 +238,12 @@ def process_message(text, number):
 
 
 
+
 # ================= MAIN =================
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+
+
 
