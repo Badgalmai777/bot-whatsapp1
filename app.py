@@ -103,6 +103,8 @@ def received_message():
         return "EVENT_RECEIVED", 500
 
 
+# ================= LÓGICA DEL BOT =================
+
 def process_message(text, number):
     convo = active_conversations[number]
     text = (text or "").lower().strip()
@@ -122,6 +124,7 @@ def process_message(text, number):
         convo["saludo_enviado"] = True
         convo["estado"] = "menu_principal"
         convo["confirmacion_enviada"] = False
+        convo["origen"] = None
         return
 
     # ---- ESPERANDO AGENTE ----
@@ -141,8 +144,11 @@ def process_message(text, number):
             )
             return
 
-        # ✅ PRIMER MENSAJE DE COTIZACIÓN → CONFIRMACIÓN
-        if not convo.get("confirmacion_enviada"):
+        # ✅ CONFIRMACIÓN SOLO PARA COTIZACIÓN
+        if (
+            convo.get("origen") == "cotizacion"
+            and not convo.get("confirmacion_enviada")
+        ):
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
                     "Perfecto 😊 te contactaremos a lo largo del día.\n\n"
@@ -153,7 +159,7 @@ def process_message(text, number):
             convo["confirmacion_enviada"] = True
             return
 
-        # 🔕 Silencio total después
+        # 🔕 Silencio total
         return
 
     # ---- DESPEDIDA ----
@@ -194,6 +200,7 @@ def process_message(text, number):
             notify_agent(number, "Cotización")
             convo["estado"] = "esperando_agente"
             convo["confirmacion_enviada"] = False
+            convo["origen"] = "cotizacion"
             return
 
         elif text == "3":
@@ -206,6 +213,7 @@ def process_message(text, number):
             notify_agent(number, "Hablar con agente")
             convo["estado"] = "esperando_agente"
             convo["confirmacion_enviada"] = False
+            convo["origen"] = "agente"
             return
 
         else:
@@ -226,6 +234,5 @@ def process_message(text, number):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
 
 
