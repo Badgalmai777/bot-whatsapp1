@@ -130,6 +130,10 @@ def process_message(text, number):
     # ---- ESPERANDO AGENTE ----
     if convo["estado"] == "esperando_agente":
 
+        # ⛔ IGNORAR DESPEDIDAS AQUÍ
+        if text in ["ok", "okey", "gracias", "muchas gracias"]:
+            return
+
         # 🔁 Volver al menú
         if text in ["menu", "inicio", "volver"]:
             convo["estado"] = "menu_principal"
@@ -144,11 +148,8 @@ def process_message(text, number):
             )
             return
 
-        # ✅ CONFIRMACIÓN SOLO PARA COTIZACIÓN
-        if (
-            convo.get("origen") == "cotizacion"
-            and not convo.get("confirmacion_enviada")
-        ):
+        # ✅ CONFIRMACIÓN SOLO SI VIENE DE COTIZACIÓN
+        if convo["origen"] == "cotizacion" and not convo["confirmacion_enviada"]:
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
                     "Perfecto 😊 te contactaremos a lo largo del día.\n\n"
@@ -162,7 +163,7 @@ def process_message(text, number):
         # 🔕 Silencio total
         return
 
-    # ---- DESPEDIDA ----
+    # ---- DESPEDIDA (SOLO FUERA DE ESPERANDO_AGENTE) ----
     if text in ["ok", "okey", "gracias", "muchas gracias"]:
         whatsappservice.SendMessageWhatsapp(
             util.TextMessage(
@@ -234,5 +235,4 @@ def process_message(text, number):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
 
