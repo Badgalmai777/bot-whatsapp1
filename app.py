@@ -134,7 +134,7 @@ def process_message(text, number):
         if convo["origen"] == "agente" and text in ["ok", "okey", "gracias", "muchas gracias"]:
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
-                    "¡Con gusto! 😊 Un agente te contactará pronto. ¡Que tengas un excelente día! 👋",
+                    "¡Con gusto! 😊 ¡Que tengas un excelente día! 👋",
                     number,
                 )
             )
@@ -243,6 +243,7 @@ def process_message(text, number):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
 
 
 
