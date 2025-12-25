@@ -130,6 +130,19 @@ def process_message(text, number):
     # ---- ESPERANDO AGENTE ----
     if convo["estado"] == "esperando_agente":
 
+        # ✅ SI VIENE DE COTIZACIÓN Y ESCRIBE SOLO "3" → PASAR A AGENTE
+        if convo["origen"] == "cotizacion" and text == "3":
+            whatsappservice.SendMessageWhatsapp(
+                util.TextMessage(
+                    "📞 Te conectamos con un agente, un momento por favor…",
+                    number,
+                )
+            )
+            notify_agent(number, "Hablar con agente")
+            convo["origen"] = "agente"
+            convo["confirmacion_enviada"] = False
+            return
+
         # ✅ DESPEDIDA SOLO SI VIENE DE AGENTE
         if convo["origen"] == "agente" and text in ["ok", "okey", "gracias", "muchas gracias"]:
             whatsappservice.SendMessageWhatsapp(
@@ -160,7 +173,8 @@ def process_message(text, number):
             whatsappservice.SendMessageWhatsapp(
                 util.TextMessage(
                     "Perfecto 😊 te contactaremos a lo largo del día.\n\n"
-                    "Si deseas volver al menú principal, escribe *menu*.",
+                    "Si deseas hablar con un agente, escribe *3*.\n"
+                    "Si deseas volver al menú, escribe *menu*.",
                     number,
                 )
             )
@@ -238,13 +252,9 @@ def process_message(text, number):
 
 
 
-
 # ================= MAIN =================
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
-
-
 
 
